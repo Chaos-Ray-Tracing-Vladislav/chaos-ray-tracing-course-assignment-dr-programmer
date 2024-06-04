@@ -31,6 +31,6 @@
 *.out
 *.app
 
-./SourceCode/h3/norm_vectors_image_1920_1080.ppm
-./SourceCode/h3/norm_vectors_image_3000_1080.ppm
-./SourceCode/h3/norm_vectors_image_6000_2000.ppm
+norm_vectors_image_1920_1080.ppm
+norm_vectors_image_3000_1080.ppm
+norm_vectors_image_6000_2000.ppm
