@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+norm_vectors_image_1920_1080.ppm
+norm_vectors_image_3000_1080.ppm
+norm_vectors_image_6000_2000.ppm
