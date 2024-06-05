@@ -2,8 +2,8 @@
 #include <cmath>
 
 // Output image resolution
-static const int imageWidth = 6000;
-static const int imageHeight = 2000;
+static const int imageWidth = 1920;
+static const int imageHeight = 1080;
 static const int maxColorComponent = 255;
 
 class Vector {
@@ -19,9 +19,10 @@ public:
         return sqrt(x * x + y * y + z * z);
     }
     void normalize() {
-        x = x / length();
-        y = y / length();
-        z = z / length();
+        float cachedLength = length();
+        x = x / cachedLength;
+        y = y / cachedLength;
+        z = z / cachedLength;
     }
 
     float getX() const {
@@ -51,7 +52,7 @@ struct Ray {
 };
 
 int main() {
-    std::ofstream ppmFileStream("norm_vectors_image_6000_2000.ppm", 
+    std::ofstream ppmFileStream("norm_vectors_image_1920_1080.ppm", 
                     std::ios::out | std::ios::binary);
     ppmFileStream << "P3\n";
     ppmFileStream << imageWidth << " " << imageHeight << "\n";
@@ -67,7 +68,6 @@ int main() {
 
             unsigned int aspectRatio = imageWidth / imageHeight;
             ray.direction.setX(ray.direction.getX() * aspectRatio);
-            ray.direction.setY(ray.direction.getY() * aspectRatio);
 
             ray.direction.normalize();
 
