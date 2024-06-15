@@ -207,19 +207,19 @@ public:
         normal = v;
     }
     
-    Vector getVertex0() const {
+    Vector& getVertex0() {
         return vertex[0];
     }
-    Vector getVertex1() const {
+    Vector& getVertex1() {
         return vertex[1];
     }
-    Vector getVertex2() const {
+    Vector& getVertex2() {
         return vertex[2];
     }
-    Vector getVertex(const unsigned int index) const {
+    Vector& getVertex(const unsigned int index) {
         return vertex[index];
     }
-    Vector getNormal() const {
+    Vector& getNormal() {
         return normal;
     }
 
@@ -234,6 +234,45 @@ public:
     }
     void setVertex(const unsigned int index, const Vector v) {
         vertex[index] = v;
+    }
+};
+
+class Camera {
+    Vector position, imagePlane;
+public:
+    Camera(const Vector position, const Vector imagePlane) 
+        : position(position), 
+          imagePlane(imagePlane)
+        {
+            this->imagePlane.normalize();
+        }
+    
+    void pan(const float angle) {
+        float rAngle = angle * (M_PI / 180);
+        Matrix transformation(
+            std::begin({
+                cosf(rAngle), 0.0f, -sinf(rAngle), 
+                0.0f, 1.0f, 0.0f, 
+                sinf(rAngle), 0.0f, cosf(rAngle)
+            }),
+            3,
+            3
+        );
+        imagePlane = Math::matrixMultiply(imagePlane, transformation);
+    }
+
+    Vector& getPosition() {
+        return position;
+    }
+    Vector& getImagePlane() {
+        return imagePlane;
+    }
+
+    void setPosition(const Vector position) {
+        this->position = position;
+    }
+    void setImagePlane(const Vector imagePlane) {
+        this->imagePlane = imagePlane;
     }
 };
 
@@ -264,7 +303,7 @@ int main() {
         triangles[i].cacheNormal();
     }
 
-    std::ofstream ppmFileStream("task1_pan_+30_1920_1080.ppm", 
+    std::ofstream ppmFileStream("task2_different_origin_1920_1080.ppm", 
                     std::ios::out | std::ios::binary);
     ppmFileStream << "P3\n";
     ppmFileStream << imageWidth << " " << imageHeight << "\n";
@@ -279,17 +318,19 @@ int main() {
             x *= imageWidth / imageHeight;
             float colors[4] = {0, 0, 0, 0};
             for(unsigned int trIndex = 0; trIndex < trCount; trIndex++) {
-                Vector cameraDirection(x, y, -1);
-                cameraDirection.normalize();
-                if(Math::dotProduct(cameraDirection, triangles[trIndex].getNormal()) != 0 
+                Camera camera(Vector(0, 0, 0), Vector(x, y, -1));
+                camera.pan(30);
+                if(Math::dotProduct(camera.getImagePlane(), 
+                                        triangles[trIndex].getNormal()) != 0 
                     && Math::dotProduct(triangles[trIndex].getNormal(), 
                                             triangles[trIndex].getVertex0()) < 0)
                 {
                     float scaleFactor = fabs(Math::dotProduct(
                         triangles[trIndex].getVertex0(), 
                         triangles[trIndex].getNormal()
-                    ) / Math::dotProduct(cameraDirection, triangles[trIndex].getNormal()));
-                    cameraDirection.scale(scaleFactor);
+                    ) / Math::dotProduct(camera.getImagePlane(), 
+                                            triangles[trIndex].getNormal()));
+                    camera.getImagePlane().scale(scaleFactor);
                     bool isIn = true;
                     for(unsigned int i = 0; i < NUM_OF_TRIANGLE_VERTICES; i++) {
                         unsigned int tail = i;
@@ -297,7 +338,7 @@ int main() {
                         Vector temp = Math::crossProduct(
                             Math::subtract(triangles[trIndex].getVertex(head), 
                                             triangles[trIndex].getVertex(tail)), 
-                            Math::subtract(cameraDirection, 
+                            Math::subtract(camera.getImagePlane(), 
                                             triangles[trIndex].getVertex(tail))
                         );
                         float checkSum = Math::dotProduct(triangles[trIndex].getNormal(), 
