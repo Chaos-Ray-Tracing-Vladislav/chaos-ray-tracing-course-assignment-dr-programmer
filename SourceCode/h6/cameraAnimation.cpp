@@ -4,8 +4,8 @@
 #include <cmath>
 #include <iterator>
 
-#define MAX_MATRIX_ROWS 3
-#define MAX_MATRIX_COLUMNS 3
+#define MAX_MATRIX_ROWS 4
+#define MAX_MATRIX_COLUMNS 4
 
 class Matrix {
     float fields[MAX_MATRIX_ROWS][MAX_MATRIX_COLUMNS] = {0};
@@ -35,7 +35,7 @@ public:
     float getField(const unsigned int i, const unsigned int j) const {
         return fields[i][j];
     }
-    float (&getFields())[3][3] {
+    float (&getFields())[MAX_MATRIX_ROWS][MAX_MATRIX_COLUMNS] {
         return fields;
     }
 
@@ -238,17 +238,28 @@ public:
 };
 
 class Camera {
-    Vector position, imagePlane;
+    Vector position, imagePlane, direction, up;
+
+    void applyRotation(Matrix& transformation) {
+        imagePlane = Math::matrixMultiply(imagePlane, transformation);
+        direction = Math::matrixMultiply(direction, transformation);
+        up = Math::matrixMultiply(up, transformation);
+    }
+
 public:
     Camera(const Vector position, const Vector imagePlane) 
         : position(position), 
-          imagePlane(imagePlane)
+          imagePlane(imagePlane), 
+          direction(Vector(0, 0, imagePlane.getZ())), 
+          up(Vector(0, -imagePlane.getZ(), 0))
         {
             this->imagePlane.normalize();
+            this->direction.normalize();
+            this->up.normalize();
         }
     
     void pan(const float angle) {
-        float rAngle = angle * (M_PI / 180);
+        const float rAngle = angle * (M_PI / 180);
         Matrix transformation(
             std::begin({
                 cosf(rAngle), 0.0f, -sinf(rAngle), 
@@ -258,7 +269,49 @@ public:
             3,
             3
         );
-        imagePlane = Math::matrixMultiply(imagePlane, transformation);
+        applyRotation(transformation);
+    }
+    void tilt(const float angle) {
+        const float rAngle = angle * (M_PI / 180);
+        Matrix transformation(
+            std::begin({
+                1.0f, 0.0f, 0.0f, 
+                0.0f, cosf(rAngle), sinf(rAngle), 
+                0.0f, -sinf(rAngle), cosf(rAngle)
+            }),
+            3, 
+            3
+        );
+        applyRotation(transformation);
+    }
+    void roll(const float angle) {
+        const float rAngle = angle * (M_PI / 180);
+        Matrix transformation(
+            std::begin({
+                cosf(rAngle), sinf(rAngle), 0.0f, 
+                -sinf(rAngle), cosf(rAngle), 0.0f, 
+                0.0f, 0.0f, 1.0f
+            }),
+            3, 
+            3
+        );
+        applyRotation(transformation);
+    }
+    void dolly(const float distance) {
+        Vector translation(direction.getX(), direction.getY(), direction.getZ());
+        translation.scale(-distance);
+        position = Math::add(position, translation);
+    }
+    void truck(const float distance) {
+        const Vector left = Math::crossProduct(direction, up);
+        Vector translation(left.getX(), left.getY(), left.getZ());
+        translation.scale(distance);
+        position = Math::add(position, translation);
+    }
+    void pedestal(const float distance) {
+        Vector translation(up.getX(), up.getY(), up.getZ());
+        translation.scale(distance);
+        position = Math::add(position, translation);
     }
 
     Vector& getPosition() {
@@ -292,6 +345,7 @@ static const int maxColorComponent = 255;
 int main() {
     const unsigned int trCount = 6;
     Triangle triangles[trCount] {
+        //Triangle(Vector(-1.75, -1.75, -3), Vector(1.75, -1.75, -3), Vector(0, 1.75, -3))
         Triangle(Vector(-1, -1.75, -3.3), Vector(1, -1.75, -3.3), Vector(0, 0, -3)),
         Triangle(Vector(0, 0, -3), Vector(1, -1.75, -3.3), Vector(1, 1.75, -3.3)),
         Triangle(Vector(-1, -1.75, -3.3), Vector(0, 0, -3), Vector(-1, 1.75, -3.3)),
@@ -303,7 +357,7 @@ int main() {
         triangles[i].cacheNormal();
     }
 
-    std::ofstream ppmFileStream("task2_different_origin_1920_1080.ppm", 
+    std::ofstream ppmFileStream("task3_roll_after_1920_1080.ppm", 
                     std::ios::out | std::ios::binary);
     ppmFileStream << "P3\n";
     ppmFileStream << imageWidth << " " << imageHeight << "\n";
@@ -319,18 +373,36 @@ int main() {
             float colors[4] = {0, 0, 0, 0};
             for(unsigned int trIndex = 0; trIndex < trCount; trIndex++) {
                 Camera camera(Vector(0, 0, 0), Vector(x, y, -1));
-                camera.pan(30);
+
+                // camera.dolly(3);
+                // camera.truck(3);
+                // camera.pan(16);
+                // camera.pedestal(6);
+                // camera.tilt(-16);
+                // camera.truck(3);
+                // camera.pan(30);
+                camera.roll(16);
+
                 if(Math::dotProduct(camera.getImagePlane(), 
                                         triangles[trIndex].getNormal()) != 0 
                     && Math::dotProduct(triangles[trIndex].getNormal(), 
                                             triangles[trIndex].getVertex0()) < 0)
                 {
-                    float scaleFactor = fabs(Math::dotProduct(
-                        triangles[trIndex].getVertex0(), 
+                    float scaleFactor = Math::dotProduct(
+                        Math::subtract(
+                            triangles[trIndex].getVertex0(), 
+                            camera.getPosition()
+                        ), 
                         triangles[trIndex].getNormal()
                     ) / Math::dotProduct(camera.getImagePlane(), 
-                                            triangles[trIndex].getNormal()));
+                                            triangles[trIndex].getNormal());
                     camera.getImagePlane().scale(scaleFactor);
+                    camera.setImagePlane(
+                        Math::add(
+                            camera.getPosition(), 
+                            camera.getImagePlane()
+                        )
+                    );
                     bool isIn = true;
                     for(unsigned int i = 0; i < NUM_OF_TRIANGLE_VERTICES; i++) {
                         unsigned int tail = i;
