@@ -357,84 +357,90 @@ int main() {
         triangles[i].cacheNormal();
     }
 
-    std::ofstream ppmFileStream("task3_roll_after_1920_1080.ppm", 
-                    std::ios::out | std::ios::binary);
-    ppmFileStream << "P3\n";
-    ppmFileStream << imageWidth << " " << imageHeight << "\n";
-    ppmFileStream << maxColorComponent << "\n";
-    for (int rowIdx = 0; rowIdx < imageHeight; ++rowIdx) {
-        for (int colIdx = 0; colIdx < imageWidth; ++colIdx) {
-            float x = colIdx + 0.5, y = rowIdx + 0.5;
-            x /= imageWidth;
-            y /= imageHeight;
-            x = (2 * x) - 1;
-            y = 1 - (2 * y);
-            x *= imageWidth / imageHeight;
-            float colors[4] = {0, 0, 0, 0};
-            for(unsigned int trIndex = 0; trIndex < trCount; trIndex++) {
-                Camera camera(Vector(0, 0, 0), Vector(x, y, -1));
+    const unsigned int totalFrames = 120;
+    for(unsigned int frame = 0; frame < totalFrames; frame++) {
+        std::string fileName = "./animation/task5_animation_frame_" + 
+                                std::to_string(frame+1) 
+                                + "_1920_1080.ppm";
+        std::ofstream ppmFileStream(fileName, 
+                        std::ios::out | std::ios::binary);
+        ppmFileStream << "P3\n";
+        ppmFileStream << imageWidth << " " << imageHeight << "\n";
+        ppmFileStream << maxColorComponent << "\n";
+        for (int rowIdx = 0; rowIdx < imageHeight; ++rowIdx) {
+            for (int colIdx = 0; colIdx < imageWidth; ++colIdx) {
+                float x = colIdx + 0.5, y = rowIdx + 0.5;
+                x /= imageWidth;
+                y /= imageHeight;
+                x = (2 * x) - 1;
+                y = 1 - (2 * y);
+                x *= imageWidth / imageHeight;
+                float colors[4] = {0, 0, 0, 0};
+                for(unsigned int trIndex = 0; trIndex < trCount; trIndex++) {
+                    Camera camera(Vector(0, 0, 0), Vector(x, y, -1));
 
-                // camera.dolly(3);
-                // camera.truck(3);
-                // camera.pan(16);
-                // camera.pedestal(6);
-                // camera.tilt(-16);
-                // camera.truck(3);
-                // camera.pan(30);
-                camera.roll(16);
+                    if(frame >= 0) camera.dolly((frame+1) / 10.0);
+                    if(frame >= 30) camera.truck((frame+1 - 30) / 10.0);
+                    if(frame >= 90) camera.pan((frame+1-90));
+                    // camera.pedestal(6);
+                    // camera.tilt(-16);
+                    // camera.truck(3);
+                    // camera.pan(30);
+                    //camera.roll(16);
 
-                if(Math::dotProduct(camera.getImagePlane(), 
-                                        triangles[trIndex].getNormal()) != 0 
-                    && Math::dotProduct(triangles[trIndex].getNormal(), 
-                                            triangles[trIndex].getVertex0()) < 0)
-                {
-                    float scaleFactor = Math::dotProduct(
-                        Math::subtract(
-                            triangles[trIndex].getVertex0(), 
-                            camera.getPosition()
-                        ), 
-                        triangles[trIndex].getNormal()
-                    ) / Math::dotProduct(camera.getImagePlane(), 
-                                            triangles[trIndex].getNormal());
-                    camera.getImagePlane().scale(scaleFactor);
-                    camera.setImagePlane(
-                        Math::add(
-                            camera.getPosition(), 
-                            camera.getImagePlane()
-                        )
-                    );
-                    bool isIn = true;
-                    for(unsigned int i = 0; i < NUM_OF_TRIANGLE_VERTICES; i++) {
-                        unsigned int tail = i;
-                        unsigned int head = (i + 1) % NUM_OF_TRIANGLE_VERTICES;
-                        Vector temp = Math::crossProduct(
-                            Math::subtract(triangles[trIndex].getVertex(head), 
-                                            triangles[trIndex].getVertex(tail)), 
-                            Math::subtract(camera.getImagePlane(), 
-                                            triangles[trIndex].getVertex(tail))
+                    if(Math::dotProduct(camera.getImagePlane(), 
+                                            triangles[trIndex].getNormal()) != 0 
+                        && Math::dotProduct(triangles[trIndex].getNormal(), 
+                                                triangles[trIndex].getVertex0()) < 0)
+                    {
+                        float scaleFactor = Math::dotProduct(
+                            Math::subtract(
+                                triangles[trIndex].getVertex0(), 
+                                camera.getPosition()
+                            ), 
+                            triangles[trIndex].getNormal()
+                        ) / Math::dotProduct(camera.getImagePlane(), 
+                                                triangles[trIndex].getNormal());
+                        camera.getImagePlane().scale(scaleFactor);
+                        camera.setImagePlane(
+                            Math::add(
+                                camera.getPosition(), 
+                                camera.getImagePlane()
+                            )
                         );
-                        float checkSum = Math::dotProduct(triangles[trIndex].getNormal(), 
-                                                            temp);
-                        if(checkSum <= 0) {
-                            //if(colors[3] == scaleFactor) CLEAR_COLORS(colors);
-                            isIn = false;
-                            break;
+                        bool isIn = true;
+                        for(unsigned int i = 0; i < NUM_OF_TRIANGLE_VERTICES; i++) {
+                            unsigned int tail = i;
+                            unsigned int head = (i + 1) % NUM_OF_TRIANGLE_VERTICES;
+                            Vector temp = Math::crossProduct(
+                                Math::subtract(triangles[trIndex].getVertex(head), 
+                                                triangles[trIndex].getVertex(tail)), 
+                                Math::subtract(camera.getImagePlane(), 
+                                                triangles[trIndex].getVertex(tail))
+                            );
+                            float checkSum = Math::dotProduct(triangles[trIndex].getNormal(), 
+                                                                temp);
+                            if(checkSum <= 0) {
+                                //if(colors[3] == scaleFactor) CLEAR_COLORS(colors);
+                                isIn = false;
+                                break;
+                            }
+                        }
+                        if(isIn && (colors[3] == 0 || colors[3] > scaleFactor)) {
+                            SET_COLORS(colors, trIndex);
+                            colors[3] = scaleFactor;
                         }
                     }
-                    if(isIn && (colors[3] == 0 || colors[3] > scaleFactor)) {
-                        SET_COLORS(colors, trIndex);
-                        colors[3] = scaleFactor;
-                    }
                 }
+                ppmFileStream << colors[0] 
+                << " " << colors[1] 
+                << " " << colors[2] 
+                << "\t";
             }
-            ppmFileStream << colors[0] 
-            << " " << colors[1] 
-            << " " << colors[2] 
-            << "\t";
+            ppmFileStream << "\n";
         }
-        ppmFileStream << "\n";
+        ppmFileStream.close();
     }
-    ppmFileStream.close();
 
     Matrix a(std::begin({1.0f, 2.0f, 3.0f, 2.0f, 3.0f, 4.0f, 3.0f, 4.0f, 5.0f}), 3, 3);
     a.print();
