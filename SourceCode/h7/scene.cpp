@@ -582,7 +582,10 @@ public:
                         if(Math::dotProduct(camera.getImagePlane(), 
                                                 triangles[trIndex].getNormal()) != 0 
                             && Math::dotProduct(triangles[trIndex].getNormal(), 
-                                                    triangles[trIndex].getVertex0()) < 0)
+                                                    Math::subtract(
+                                                        triangles[trIndex].getVertex0(), 
+                                                        camera.getPosition()
+                                                    )) < 0)
                         {
                             float scaleFactor = Math::dotProduct(
                                 Math::subtract(
