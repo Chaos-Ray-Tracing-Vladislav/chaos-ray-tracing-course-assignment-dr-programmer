@@ -42,5 +42,5 @@ def convert_all_ppm_in_directory(directory_path):
 
 # Example usage:
 if __name__ == "__main__":
-    directory = "./h11/"  # Replace with your directory path
+    directory = "./h12/"  # Replace with your directory path
     convert_all_ppm_in_directory(directory)
