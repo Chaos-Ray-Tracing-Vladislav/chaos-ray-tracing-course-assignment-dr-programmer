@@ -1,0 +1,3 @@
+Without opmizations: 662824202 us (microseconds)
+With bucket rendering: 160644341 us (microseconds)
+With bucket rendering and AABB intersection: 69289984 us (microseconds)
