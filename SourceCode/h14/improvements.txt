@@ -1,0 +1,11 @@
+Without opmizations: 662824202 us (microseconds)
+With bucket rendering: 160644341 us (microseconds)
+With bucket rendering and AABB intersection: 69289984 us (microseconds)
+
+With bucket rendering, AABB intersection and KDTree acceleration structure: 
+    13057210 us (microseconds)
+
+
+All tests run on:
+    CPU: AMD Ryzen 7 4800H laptop
+    Memory: 16 GB
